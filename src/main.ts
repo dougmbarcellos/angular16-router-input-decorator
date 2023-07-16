@@ -15,6 +15,7 @@ import {
   withComponentInputBinding,
 } from '@angular/router';
 import { LoggerService } from './logger.service';
+import { delay } from 'rxjs';
 
 @Component({
   selector: 'my-app',
@@ -39,13 +40,14 @@ import { LoggerService } from './logger.service';
     <router-outlet />
 
     <h3>Logs</h3>
-    <ul *ngIf="loggerService.logList$ | async as logList">
-      <li *ngFor="let log of logList; index as i" [ngClass]="log.type">{{log.description}}</li>
+    <ul>
+      <li *ngFor="let log of logList$ | async; index as i" [ngClass]="log.type">{{log.description}}</li>
     </ul>
   `,
 })
 export class App {
-  loggerService = inject(LoggerService);
+  private loggerService = inject(LoggerService);
+  protected logList$ = this.loggerService.logList$.pipe(delay(0));
 }
 
 @Component({
@@ -67,25 +69,24 @@ export class PageComponent {
   @RouteParam() id: string | undefined;
   @RouteQueryParam() name: string | undefined;
 
+  constructor() {
+    this.loggerService.addLog('create', 'PageComponent created');
+
+  }
+
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.id && !changes.id.firstChange) {
+    if (changes.id) {
       this.loggerService.addLog(
         'change',
         `id param change: ${changes.id.currentValue}`
       );
     }
-    if (changes.name && !changes.name.firstChange) {
+    if (changes.name) {
       this.loggerService.addLog(
         'change',
         `name queryParam change: ${changes.name.currentValue}`
       );
     }
-  }
-
-  ngOnInit() {
-    this.loggerService.addLog('create', 'PageComponent created');
-    this.loggerService.addLog('change', `id param change: ${this.id}`);
-    this.loggerService.addLog('change', `name queryParam change: ${this.name}`);
   }
 
   ngOnDestroy() {
